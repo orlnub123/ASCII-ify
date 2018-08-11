@@ -1,0 +1,8 @@
+asyncpg
+click
+git+https://github.com/Rapptz/discord.py@rewrite
+pillow
+pyfiglet
+ruamel.yaml
+unidecode
+uvloop
