@@ -1,12 +1,14 @@
 import io
 import json
 import os
+import types
 
+import discord
 import pyfiglet
 from discord.ext import commands
 from PIL import Image
 
-from utils import invoke
+from utils import Emoji, acquire, cache, ignore, invoke
 
 from .converters import ImageURL
 from .utils import url_regex
@@ -22,8 +24,49 @@ class Conversion:
             del chars['`']  # Don't bother dealing with backticks
         self.chars = chars
 
+    @cache(maxsize=None, ignore=['connection'])
+    async def get_config(self, guild, *, connection):
+        record = await connection.fetchrow("""
+            SELECT * FROM conversion.guilds WHERE id = $1;
+        """, guild.id)
+        return types.SimpleNamespace(**record)
+
+    async def send(self, ctx, *args, **kwargs):
+        if ctx.guild is not None:
+            async with self.bot.pool.acquire() as connection:
+                config = await self.get_config(ctx.guild,
+                                               connection=connection)
+            pm = config.pm
+        else:
+            pm = False
+
+        if pm:
+            await ctx.author.send(*args, **kwargs)
+            try:
+                await ctx.message.add_reaction(str(Emoji.white_check_mark))
+            except discord.Forbidden:
+                pass
+        else:
+            await ctx.send(*args, **kwargs)
+
+    async def _add_guild(self, guild, *, connection):
+        await connection.execute("""
+            INSERT INTO conversion.guilds (id)
+            VALUES ($1)
+            ON CONFLICT DO NOTHING;
+        """, guild.id)
+
+    @acquire()
+    async def on_ready(self, connection):
+        for guild in self.bot.guilds:
+            await self._add_guild(guild, connection=connection)
+
+    @acquire()
+    async def on_guild_join(self, guild, connection):
+        await self._add_guild(guild, connection=connection)
 
     @commands.group(invoke_without_command=True)
+    @ignore
     async def convert(self, ctx, *, argument=None):
         """Dynamically convert the message based on its composition."""
         if argument is None and not ctx.message.attachments:
@@ -37,6 +80,7 @@ class Conversion:
 
     @convert.command()
     @commands.cooldown(4, 24, commands.BucketType.user)
+    @ignore
     async def art(self, ctx, url: ImageURL(member=True, emoji=True) = None):
         """Convert an image into ASCII art."""
         if url is None:
@@ -81,10 +125,11 @@ class Conversion:
             return '\n'.join(output)
 
         art = await self.bot.loop.run_in_executor(None, convert)
-        await ctx.author.send(f'```{art}```')
+        await self.send(ctx, f'```{art}```')
 
     @convert.command()
     @commands.cooldown(4, 24, commands.BucketType.user)
+    @ignore
     async def text(self, ctx, *, text):
         """Convert text into ASCII text."""
         for font in ('big', 'standard', 'small'):
@@ -95,7 +140,18 @@ class Conversion:
             raise commands.CheckFailure
         if not render:
             raise commands.BadArgument
-        await ctx.author.send(f'```{render}```')
+        await self.send(ctx, f'```{render}```')
+
+    @convert.command()
+    @commands.guild_only()
+    async def pm(self, ctx, toggle: bool):
+        """Configure conversions to be sent via private message."""
+        await self.bot.pool.execute("""
+            UPDATE conversion.guilds
+            SET pm = $1
+            WHERE id = $2;
+        """, toggle, ctx.guild.id)
+        self.get_config.invalidate(ctx.guild)
 
 
 def setup(bot):
