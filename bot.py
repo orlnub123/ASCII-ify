@@ -3,6 +3,7 @@ import contextlib
 import sys
 import time
 
+import aiohttp
 import asyncpg
 import discord
 from discord.ext import commands
@@ -35,6 +36,7 @@ class Bot(commands.Bot):
         self.pool = self.loop.run_until_complete(
             asyncpg.create_pool(config.settings.dsn, init=self.init_connection,
                                 setup=self.setup_connection))
+        self.session = aiohttp.ClientSession(loop=self.loop)
         self.cooldowns = []
         self.loop.create_task(self.display())
 
@@ -67,6 +69,13 @@ class Bot(commands.Bot):
         extension = self.extensions[name]
         if hasattr(extension, 'init_connection'):
             self.loop.create_task(self.pool.expire_connections())
+
+    async def close(self):
+        if self.is_closed():
+            return
+
+        await self.session.close()
+        await super().close()
 
     async def on_connect(self):
         self.ready.clear()

@@ -2,7 +2,6 @@ import io
 import json
 import os
 
-import aiohttp
 import pyfiglet
 from discord.ext import commands
 from PIL import Image
@@ -17,16 +16,12 @@ class Conversion:
 
     def __init__(self, bot):
         self.bot = bot
-        self.session = aiohttp.ClientSession(loop=bot.loop)
-
         here = os.path.abspath(os.path.dirname(__file__))
         with open(os.path.join(here, 'consolas_data.json')) as file:
             chars = json.load(file)
             del chars['`']  # Don't bother dealing with backticks
         self.chars = chars
 
-    def __unload(self):
-        self.bot.loop.create_task(self.session.close())
 
     @commands.group(invoke_without_command=True)
     async def convert(self, ctx, *, argument=None):
@@ -53,12 +48,12 @@ class Conversion:
         elif ctx.message.attachments:
             raise commands.TooManyArguments
 
-        async with self.session.head(url) as response:
+        async with self.bot.session.head(url) as response:
             allowed_types = ['image/png', 'image/jpeg', 'image/webp']
             if response.headers['content-type'] not in allowed_types:
                 raise commands.BadArgument
 
-        async with self.session.get(url) as response:
+        async with self.bot.session.get(url) as response:
             data = await response.read()
 
         def convert():
