@@ -81,6 +81,8 @@ class Bot(commands.Bot):
         if self.is_closed():
             return
 
+        self.connect_event.clear()
+        self.ready_event.clear()
         await self.session.close()
         await super().close()
 
