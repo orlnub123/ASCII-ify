@@ -143,6 +143,7 @@ class Conversion:
         await self.send(ctx, f'```{render}```')
 
     @convert.command()
+    @commands.has_permissions(manage_guild=True)
     @commands.guild_only()
     async def pm(self, ctx, toggle: bool):
         """Configure conversions to be sent via private message."""
