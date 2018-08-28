@@ -46,7 +46,7 @@ class Conversion:
         """Convert an image into ASCII art."""
         if url is None:
             attachments = ctx.message.attachments
-            if len(attachments) != 1 or attachments[0].height is not None:
+            if len(attachments) != 1 or attachments[0].height is None:
                 raise commands.BadArgument
 
             url = attachments[0].proxy_url
