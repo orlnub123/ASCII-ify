@@ -98,6 +98,11 @@ class Bot(commands.Bot):
         await self.change_presence(status=discord.Status.online,
                                    activity=discord.Game("with characters"))
 
+    async def on_error(self, *args, **kwargs):
+        error = sys.exc_info()[1]
+        if not isinstance(error, discord.Forbidden):
+            await super().on_error(*args, **kwargs)
+
     async def on_command_completion(self, ctx):
         if not getattr(ctx, 'ignore', False):
             await ctx.message.add_reaction(str(Emoji.white_check_mark))
