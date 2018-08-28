@@ -93,6 +93,8 @@ class Conversion:
                 break
         else:
             raise commands.CheckFailure
+        if not render:
+            raise commands.BadArgument
         await ctx.author.send(f'```{render}```')
 
 
