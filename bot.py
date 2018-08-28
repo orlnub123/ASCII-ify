@@ -88,12 +88,13 @@ class Bot(commands.Bot):
 
     def handle_connect(self):
         self.connect_event.set()
-
-    async def on_connect(self):
         self.ready_event.clear()
 
-    async def on_ready(self):
+    def handle_ready(self):
         self.ready_event.set()
+        super().handle_ready()
+
+    async def on_ready(self):
         await self.change_presence(status=discord.Status.online,
                                    activity=discord.Game("with characters"))
 
