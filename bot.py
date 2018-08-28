@@ -31,6 +31,7 @@ class Bot(commands.Bot):
     def __init__(self, *, config, **kwargs):
         super().__init__(command_prefix=command_prefix,
                          status=discord.Status.invisible, **kwargs)
+        self.connect_event = asyncio.Event()
         self.ready = asyncio.Event()
         self.config = config
         self.pool = self.loop.run_until_complete(
@@ -70,12 +71,21 @@ class Bot(commands.Bot):
         if hasattr(extension, 'init_connection'):
             self.loop.create_task(self.pool.expire_connections())
 
+    def is_connected(self):
+        return self.connect_event.is_set()
+
+    async def wait_until_connect(self):
+        await self.connect_event.wait()
+
     async def close(self):
         if self.is_closed():
             return
 
         await self.session.close()
         await super().close()
+
+    def handle_connect(self):
+        self.connect_event.set()
 
     async def on_connect(self):
         self.ready.clear()
