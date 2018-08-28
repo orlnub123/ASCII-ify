@@ -51,13 +51,13 @@ class Bot(commands.Bot):
                 print(" - {0} ({0.id})".format(admin))
 
     async def init_connection(self, connection):
-        inits = [extension.init_connection(connection)
+        inits = [extension.init_connection(self, connection)
                  for extension in self.extensions.values()
                  if hasattr(extension, 'init_connection')]
         await asyncio.gather(*inits)
 
     async def setup_connection(self, connection):
-        setups = [extension.setup_connection(connection)
+        setups = [extension.setup_connection(self, connection)
                   for extension in self.extensions.values()
                   if hasattr(extension, 'setup_connection')]
         await asyncio.gather(*setups)

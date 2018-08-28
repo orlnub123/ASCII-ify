@@ -285,7 +285,7 @@ def setup(bot):
     bot.add_cog(Transliteration(bot))
 
 
-async def init_connection(connection):
+async def init_connection(bot, connection):
     import operator
     await connection.set_type_codec(
         'transliteration_type',
