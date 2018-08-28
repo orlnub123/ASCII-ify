@@ -32,7 +32,7 @@ class Bot(commands.Bot):
         super().__init__(command_prefix=command_prefix,
                          status=discord.Status.invisible, **kwargs)
         self.connect_event = asyncio.Event()
-        self.ready = asyncio.Event()
+        self.ready_event = asyncio.Event()
         self.config = config
         self.pool = self.loop.run_until_complete(
             asyncpg.create_pool(config.settings.dsn, init=self.init_connection,
@@ -88,10 +88,10 @@ class Bot(commands.Bot):
         self.connect_event.set()
 
     async def on_connect(self):
-        self.ready.clear()
+        self.ready_event.clear()
 
     async def on_ready(self):
-        self.ready.set()
+        self.ready_event.set()
         await self.change_presence(status=discord.Status.online,
                                    activity=discord.Game("with characters"))
 
@@ -139,7 +139,7 @@ class Bot(commands.Bot):
         return await super().get_context(message, cls=cls)
 
     async def on_message(self, message):
-        if message.author.bot or not self.ready.is_set():
+        if message.author.bot or not self.ready_event.is_set():
             return
 
         await self.process_commands(message)
