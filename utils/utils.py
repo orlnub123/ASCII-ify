@@ -19,19 +19,22 @@ def _is_method(func, args, *, command=False):
         return isinstance(method, types.MethodType)
 
 
-async def invoke(command, ctx):
+async def invoke(command, ctx, *, content=None, **kwargs):
     if isinstance(command, commands.Command):
         command = command.qualified_name
 
     message = copy.copy(ctx.message)
-    view = commands.view.StringView(message.content)
-    view.skip_string(ctx.prefix)
-    word = None
-    while word != ctx.invoked_with:
-        if view.eof:
-            raise RuntimeError
-        word = view.get_word()
-    message.content = ctx.prefix + command + view.read_rest()
+    if content:
+        message.content = f'{ctx.prefix}{command} {content}'
+    elif content is not None:
+        message.content = ctx.prefix + command
+    else:
+        view = commands.view.StringView(message.content)
+        assert view.skip_string(ctx.prefix)
+        assert view.skip_string(ctx.command.qualified_name)
+        message.content = ctx.prefix + command + view.read_rest()
+    for item, value in kwargs.items():
+        setattr(message, item, value)
 
     ctx = await ctx.bot.get_context(message)
     if await ctx.bot.can_run(ctx, call_once=True):
