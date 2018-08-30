@@ -78,7 +78,27 @@ class Conversion:
             command = self.art
         await invoke(command, ctx)
 
-    @convert.command()
+    @convert.command(name='last')
+    @ignore
+    async def convert_last(self, ctx):
+        """Convert the last message."""
+        try:
+            message = await ctx.history(limit=1, before=ctx.message).next()
+        except discord.NoMoreItems:
+            raise commands.BadArgument
+
+        embed = message.embeds[-1] if message.embeds else None
+        attachment = message.attachments[-1] if message.attachments else None
+        if embed is not None:
+            if embed.type != 'image':
+                raise commands.BadArgument
+            await invoke(self.art, ctx, content=embed.url, embeds=[embed])
+        elif attachment is not None:
+            await invoke(self.art, ctx, content='', attachments=[attachment])
+        else:
+            await invoke(self.text, ctx, content=message.content)
+
+    @convert.group(invoke_without_command=True)
     @commands.cooldown(4, 24, commands.BucketType.user)
     @ignore
     async def art(self, ctx, url: ImageURL(member=True, emoji=True) = None):
@@ -126,7 +146,26 @@ class Conversion:
         art = await self.bot.loop.run_in_executor(None, convert)
         await self.send(ctx, f'```{art}```')
 
-    @convert.command()
+    @art.command(name='last')
+    @commands.cooldown(4, 24, commands.BucketType.user)
+    @ignore
+    async def art_last(self, ctx):
+        """Convert the last message containing an image."""
+        async for message in ctx.history(limit=25, before=ctx.message):
+            for embed in message.embeds:
+                if embed.type == 'image':
+                    await invoke(self.art, ctx, content=embed.url,
+                                 embeds=[embed])
+                    break
+            for attachment in message.attachments:
+                if attachment.height is not None:
+                    await invoke(self.art, ctx, content='',
+                                 attachments=[attachment])
+                    break
+        else:
+            raise commands.BadArgument
+
+    @convert.group(invoke_without_command=True)
     @commands.cooldown(4, 24, commands.BucketType.user)
     @ignore
     async def text(self, ctx, *, text):
@@ -140,6 +179,18 @@ class Conversion:
         if not render:
             raise commands.BadArgument
         await self.send(ctx, f'```{render}```')
+
+    @text.command(name='last')
+    @commands.cooldown(4, 24, commands.BucketType.user)
+    @ignore
+    async def text_last(self, ctx):
+        """Convert the last message containing text."""
+        async for message in ctx.history(limit=25, before=ctx.message):
+            if message.content:
+                await invoke(self.text, ctx, content=message.content)
+                break
+        else:
+            raise commands.BadArgument
 
     @convert.command()
     @commands.has_permissions(manage_guild=True)
