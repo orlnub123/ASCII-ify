@@ -83,13 +83,12 @@ class Conversion:
     @ignore
     async def art(self, ctx, url: ImageURL(member=True, emoji=True) = None):
         """Convert an image into ASCII art."""
+        attachments = ctx.message.attachments
         if url is None:
-            attachments = ctx.message.attachments
             if len(attachments) != 1 or attachments[0].height is None:
                 raise commands.BadArgument
-
             url = attachments[0].proxy_url
-        elif ctx.message.attachments:
+        elif attachments:
             raise commands.TooManyArguments
 
         async with self.bot.session.head(url) as response:
