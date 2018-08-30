@@ -34,7 +34,8 @@ async def invoke(command, ctx):
     message.content = ctx.prefix + command + view.read_rest()
 
     ctx = await ctx.bot.get_context(message)
-    await ctx.command.invoke(ctx)
+    if await ctx.bot.can_run(ctx, call_once=True):
+        await ctx.command.invoke(ctx)
 
 
 def get_color(ctx):
