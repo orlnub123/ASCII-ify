@@ -156,12 +156,12 @@ class Conversion:
                 if embed.type == 'image':
                     await invoke(self.art, ctx, content=embed.url,
                                  embeds=[embed])
-                    break
+                    return
             for attachment in message.attachments:
                 if attachment.height is not None:
                     await invoke(self.art, ctx, content='',
                                  attachments=[attachment])
-                    break
+                    return
         else:
             raise commands.BadArgument
 
