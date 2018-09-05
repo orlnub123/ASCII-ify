@@ -34,6 +34,10 @@ class Transliteration:
 
         return True
 
+    def __unload(self):
+        for tracker in self._recent_edits.trackers:
+            tracker.cancel()
+
     async def transliterate_member(self, member, *, reason=None, manual=False,
                                    connection):
         if not is_unicode(member.display_name):

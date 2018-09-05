@@ -10,6 +10,7 @@ class MemberDefaultDict(collections.defaultdict):
     def __init__(self, *args, track=False, **kwargs):
         super().__init__(*args, **kwargs)
         self.track = track
+        self.trackers = []
 
     def __getitem__(self, member):
         key = self._get_key(member)
@@ -21,7 +22,9 @@ class MemberDefaultDict(collections.defaultdict):
 
         if self.track:
             loop = asyncio.get_event_loop()
-            loop.create_task(self._track_item(key, value))
+            tracker = loop.create_task(self._track_item(key, value))
+            tracker.add_done_callback(self.trackers.remove)
+            self.trackers.append(tracker)
 
     def __delitem__(self, member):
         key = self._get_key(member)
