@@ -44,6 +44,9 @@ def setup_logging():
     logger_warnings.setLevel(logging.WARNING)
     logging.captureWarnings(True)
     warnings.filterwarnings('always')
+    warnings.filterwarnings(
+        'ignore', message='Not importing directory .*: missing __init__',
+        category=ImportWarning, module='importlib')
 
     handler = logging.FileHandler(filename='discord.log', encoding='utf-8')
     formatter = logging.Formatter(
